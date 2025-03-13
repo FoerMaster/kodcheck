@@ -41,21 +41,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create a new report from scan data
   app.post("/api/analyze", async (req: Request, res: Response) => {
     try {
+      // Debug: Log the request body
+      console.log("[express] Analyze request received, content-type:", req.headers['content-type']);
+      console.log("[express] Request body:", typeof req.body, Object.keys(req.body));
+      
       // Handle both JSON and form data
       const formData = req.body;
       let parsedData;
       
       // Check if the data is already JSON (from Garry's Mod Lua HTTP)
       if (typeof formData === 'object' && formData.serverIp) {
+        console.log("[express] Processing as direct object");
         parsedData = {
           serverIp: formData.serverIp,
           gmodVersion: formData.gmodVersion,
-          issues: Array.isArray(formData.issues) ? formData.issues : [],
-          exploits: Array.isArray(formData.exploits) ? formData.exploits : [],
-          files: Array.isArray(formData.files) ? formData.files : [],
-          addons: Array.isArray(formData.addons) ? formData.addons : []
+          issues: Array.isArray(formData.issues) ? formData.issues : 
+                 (typeof formData.issues === 'string' ? JSON.parse(formData.issues) : []),
+          exploits: Array.isArray(formData.exploits) ? formData.exploits : 
+                   (typeof formData.exploits === 'string' ? JSON.parse(formData.exploits) : []),
+          files: Array.isArray(formData.files) ? formData.files : 
+                (typeof formData.files === 'string' ? JSON.parse(formData.files) : []),
+          addons: Array.isArray(formData.addons) ? formData.addons : 
+                 (typeof formData.addons === 'string' ? JSON.parse(formData.addons) : [])
         };
       } else {
+        console.log("[express] Processing as form data");
         // Parse nested JSON fields from form data
         parsedData = {
           serverIp: formData.serverIp,

@@ -10,6 +10,7 @@ import Addons from "@/components/Addons";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useRef, useEffect } from "react";
+import type { Report as ReportType } from "@shared/schema";
 
 export default function Report() {
   const { reportId } = useParams();
@@ -23,7 +24,7 @@ export default function Report() {
     addons: useRef<HTMLElement>(null)
   };
   
-  const { data: report, isLoading, error } = useQuery({
+  const { data: report, isLoading, error } = useQuery<ReportType>({
     queryKey: [`/api/reports/${reportId}`],
   });
   
