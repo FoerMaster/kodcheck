@@ -42,27 +42,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/analyze", async (req: Request, res: Response) => {
     try {
       // Debug: Log the request body
-      console.log("[express] Analyze request received, content-type:", req.headers['content-type']);
-      console.log("[express] Request body:", typeof req.body, Object.keys(req.body));
-      
+      console.log(
+        "[express] Analyze request received, content-type:",
+        req.headers["content-type"],
+      );
+      console.log(
+        "[express] Request body:",
+        typeof req.body,
+        Object.keys(req.body),
+      );
+
       // Handle both JSON and form data
       const formData = req.body;
       let parsedData;
-      
+      console.log(parsedData);
       // Check if the data is already JSON (from Garry's Mod Lua HTTP)
-      if (typeof formData === 'object' && formData.serverIp) {
+      if (typeof formData === "object" && formData.serverIp) {
         console.log("[express] Processing as direct object");
         parsedData = {
           serverIp: formData.serverIp,
           gmodVersion: formData.gmodVersion,
-          issues: Array.isArray(formData.issues) ? formData.issues : 
-                 (typeof formData.issues === 'string' ? JSON.parse(formData.issues) : []),
-          exploits: Array.isArray(formData.exploits) ? formData.exploits : 
-                   (typeof formData.exploits === 'string' ? JSON.parse(formData.exploits) : []),
-          files: Array.isArray(formData.files) ? formData.files : 
-                (typeof formData.files === 'string' ? JSON.parse(formData.files) : []),
-          addons: Array.isArray(formData.addons) ? formData.addons : 
-                 (typeof formData.addons === 'string' ? JSON.parse(formData.addons) : [])
+          issues: Array.isArray(formData.issues)
+            ? formData.issues
+            : typeof formData.issues === "string"
+              ? JSON.parse(formData.issues)
+              : [],
+          exploits: Array.isArray(formData.exploits)
+            ? formData.exploits
+            : typeof formData.exploits === "string"
+              ? JSON.parse(formData.exploits)
+              : [],
+          files: Array.isArray(formData.files)
+            ? formData.files
+            : typeof formData.files === "string"
+              ? JSON.parse(formData.files)
+              : [],
+          addons: Array.isArray(formData.addons)
+            ? formData.addons
+            : typeof formData.addons === "string"
+              ? JSON.parse(formData.addons)
+              : [],
         };
       } else {
         console.log("[express] Processing as form data");
@@ -73,10 +92,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           issues: JSON.parse(formData.issues || "[]"),
           exploits: JSON.parse(formData.exploits || "[]"),
           files: JSON.parse(formData.files || "[]"),
-          addons: JSON.parse(formData.addons || "[]")
+          addons: JSON.parse(formData.addons || "[]"),
         };
       }
-      
+
       // Validate the incoming scan data against our schema
       const scanData = scanDataSchema.parse(parsedData);
 
@@ -130,8 +149,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const serverIp = (req.query.server as string) || "unknown";
       const baseUrl =
         process.env.BASE_URL || req.get("host") || "localhost:5000";
-      const protocol = req.secure ? "https" : "http";
-
       // This is the Lua code that will be executed on the GMod server to analyze it
       // Based on BadCoderz library but simplified for web integration
       const luaCode = `
@@ -139,11 +156,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
 -- Web adaptation version 1.0.0
 
 local scannerVersion = "1.0.0"
-local serverIp = "${serverIp}"
-local baseUrl = "${protocol}://${baseUrl}"
+local serverIp = game.GetIPAddress() or "${serverIp}"
+local baseUrl = "https://${baseUrl}"
 
 print("[CodeScan] Starting GMod server code analysis...")
 print("[CodeScan] This might take a few seconds...")
+
+-- Initialize ConVars scanning
+local dangerous_convars = {
+  sv_allowcslua = { default = "1", dangerous = "1", safe = "0", description = "Allow clients to run Lua code on the server" },
+  sv_cheats = { default = "0", dangerous = "1", safe = "0", description = "Allow cheats on server" },
+  sv_kickerrornum = { default = "0", dangerous = "0", safe = "10", description = "Kick clients that exceed this number of errors" },
+  host_timescale = { default = "1", dangerous = "above 1", safe = "1", description = "Sets the game speed" },
+  net_maxfilesize = { default = "16", dangerous = "above 64", safe = "16", description = "Maximum file size for uploads" },
+  sv_allowupload = { default = "1", dangerous = "1", safe = "0", description = "Allow clients to upload files" },
+  sv_alltalk = { default = "0", dangerous = "1", safe = "0", description = "Players can hear all other players" },
+  sv_allowdownload = { default = "1", dangerous = "1", safe = "0", description = "Allow clients to download files" },
+  sv_logecho = { default = "1", dangerous = "0", safe = "1", description = "Echo log to console" },
+  sv_logfile = { default = "1", dangerous = "0", safe = "1", description = "Log server information to file" },
+  lua_allow_http_requests = { default = "0", dangerous = "1", safe = "0", description = "Allow Lua HTTP Requests" }
+}
 
 -- Initialize BadCoderz-like definitions
 local dangerous_hooks = {
@@ -320,8 +352,56 @@ for hookName, hookTable in pairs(hook.GetTable()) do
   end
 end
 
+-- Scan for ConVars
+print("[CodeScan] Scanning ConVars...")
+
+local convar_issues = {}
+
+-- Get the actual values from the server
+for convar_name, convar_info in pairs(dangerous_convars) do
+  local value = GetConVarString(convar_name) or "N/A"
+  local default = convar_info.default
+  local dangerous = convar_info.dangerous
+  local safe = convar_info.safe
+  local description = convar_info.description
+  
+  -- Check if the value is dangerous
+  local is_dangerous = false
+  if dangerous == "above 1" then
+    is_dangerous = tonumber(value) and tonumber(value) > 1
+  else
+    is_dangerous = value == dangerous
+  end
+  
+  -- If dangerous, add to issues
+  if is_dangerous then
+    local issueId = "convar_" .. #convar_issues + 1
+    table.insert(issues, {
+      id = issueId,
+      title = "Dangerous ConVar: " .. convar_name,
+      description = "The ConVar " .. convar_name .. " is set to a potentially dangerous value: " .. value .. ". " .. description,
+      severity = "security",
+      occurrences = 1,
+      filePath = "ConVars",
+      lineNumber = 0,
+      code = convar_name .. " " .. value .. " // Default: " .. default,
+      recommendation = "Consider setting this ConVar to " .. safe .. " for better security"
+    })
+    
+    -- Add to convar_issues for reference
+    table.insert(convar_issues, {
+      name = convar_name,
+      current = value,
+      default = default,
+      safe = safe,
+      description = description,
+      is_dangerous = is_dangerous
+    })
+  end
+end
+
 -- Skip security exploits scan
-print("[CodeScan] Analysis of hooks and functions complete!")
+print("[CodeScan] Analysis of hooks, functions and ConVars complete!")
 
 -- Finalize addon list
 for _, addon in pairs(addonsTable) do
