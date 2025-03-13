@@ -1,0 +1,9 @@
+
+node_modules
+npm-debug.log
+.git
+.github
+.gitignore
+attached_assets
+dist
+.config

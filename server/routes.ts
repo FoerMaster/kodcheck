@@ -1,16 +1,85 @@
-import type { Express, Request, Response } from "express";
+import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { scanDataSchema } from "@shared/schema";
 import { z } from "zod";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
+import { nanoid } from "nanoid";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import { WebSocketServer } from "ws";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Track active scans and their data
+const activeScans = new Map<string, {
+  ws: WebSocket | null;
+  timeout: NodeJS.Timeout | null;
+  issues: any[];
+  isComplete: boolean;
+}>();
+
+// Force HTTPS for all requests
+const enforceHttps = (req: Express.Request, res: Express.Response, next: Express.NextFunction) => {
+  if (process.env.NODE_ENV === 'production' && !req.secure) {
+    return res.redirect(`https://${req.headers.host}${req.url}`);
+  }
+  next();
+};
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // API Routes - all prefixed with /api
+  const httpServer = createServer(app);
+
+  // Use HTTPS middleware
+  app.use(enforceHttps);
+
+  // Setup WebSocket server with secure configuration
+  const wss = new WebSocketServer({ 
+    server: httpServer,
+    path: "/ws",
+    clientTracking: true
+  });
+
+  wss.on("connection", (ws) => {
+    ws.on("message", (data) => {
+      try {
+        const message = JSON.parse(data.toString());
+        if (message.type === "scan_id") {
+          const scanId = message.scanId;
+
+          // Store the connection
+          activeScans.set(scanId, {
+            ws,
+            timeout: setTimeout(() => {
+              ws.close();
+              activeScans.delete(scanId);
+            }, 5 * 60 * 1000), // 5 minute timeout
+            issues: [],
+            isComplete: false
+          });
+        }
+      } catch (error) {
+        console.error("WebSocket message error:", error);
+      }
+    });
+
+    ws.on("close", () => {
+      // Clean up any associated scan
+      for (const [scanId, scan] of activeScans.entries()) {
+        if (scan.ws === ws) {
+          clearTimeout(scan.timeout!);
+          activeScans.delete(scanId);
+          break;
+        }
+      }
+    });
+  });
 
   // Get a specific report by ID
-  app.get("/api/reports/:reportId", async (req: Request, res: Response) => {
+  app.get("/api/reports/:reportId", async (req, res) => {
     try {
       const { reportId } = req.params;
       const report = await storage.getReport(reportId);
@@ -19,7 +88,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Report not found" });
       }
 
-      return res.json(report);
+      return res.json(report.data);
     } catch (error) {
       console.error("Error fetching report:", error);
       return res.status(500).json({ message: "Failed to fetch report" });
@@ -27,7 +96,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // List recent reports
-  app.get("/api/reports", async (req: Request, res: Response) => {
+  app.get("/api/reports", async (req, res) => {
     try {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
       const reports = await storage.listReports(limit);
@@ -39,26 +108,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create a new report from scan data
-  app.post("/api/analyze", async (req: Request, res: Response) => {
+  app.post("/api/analyze", async (req, res) => {
     try {
-      // Debug: Log the request body
-      console.log(
-        "[express] Analyze request received, content-type:",
-        req.headers["content-type"],
-      );
-      console.log(
-        "[express] Request body:",
-        typeof req.body,
-        Object.keys(req.body),
-      );
-
       // Handle both JSON and form data
       const formData = req.body;
       let parsedData;
-      console.log(parsedData);
+
       // Check if the data is already JSON (from Garry's Mod Lua HTTP)
       if (typeof formData === "object" && formData.serverIp) {
-        console.log("[express] Processing as direct object");
         parsedData = {
           serverIp: formData.serverIp,
           gmodVersion: formData.gmodVersion,
@@ -84,7 +141,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
               : [],
         };
       } else {
-        console.log("[express] Processing as form data");
         // Parse nested JSON fields from form data
         parsedData = {
           serverIp: formData.serverIp,
@@ -101,6 +157,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create the report
       const report = await storage.createReport(scanData);
+
+      // Notify the waiting WebSocket client if exists
+      const scanId = req.query.scan as string;
+      const activeScan = activeScans.get(scanId);
+      if (activeScan) {
+        const { ws, timeout } = activeScan;
+        clearTimeout(timeout!);
+        ws!.send(JSON.stringify({
+          type: "scan_complete",
+          reportId: report.reportId
+        }));
+        activeScans.delete(scanId);
+      }
 
       return res.status(201).json({
         message: "Report created successfully",
@@ -122,332 +191,124 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Generate the console command for server owners
-  app.get("/api/console-command", (req: Request, res: Response) => {
+  // Receive chunks of issues
+  app.post("/api/analyze/issues", async (req, res) => {
     try {
-      const serverIp = req.query.serverIp || "your-server-ip";
-      const baseUrl =
-        process.env.BASE_URL || req.get("host") || "localhost:5000";
-      const protocol = req.secure ? "https" : "http";
+      const { scanId, totalChunks, currentChunk, data } = req.body;
+      const issues = JSON.parse(data);
 
-      const commandUrl = `${protocol}://${baseUrl}/api/scanner-code?server=${serverIp}`;
+      if (!activeScans.has(scanId)) {
+        activeScans.set(scanId, {
+          ws: null,
+          timeout: null,
+          issues: [],
+          isComplete: false
+        });
+      }
 
+      const scanData = activeScans.get(scanId);
+      scanData!.issues.push(...issues);
+
+      console.log(`Received chunk ${currentChunk}/${totalChunks} for scan ${scanId}`);
+
+      return res.status(200).json({ message: "Chunk received" });
+    } catch (error) {
+      console.error("Error processing issues chunk:", error);
+      return res.status(500).json({ message: "Failed to process issues chunk" });
+    }
+  });
+
+  // Complete the analysis and create report
+  app.post("/api/analyze/complete", async (req, res) => {
+    try {
+      const { scanId, serverIp, gmodVersion } = req.body;
+      const scanData = activeScans.get(scanId);
+
+      if (!scanData) {
+        return res.status(404).json({ message: "Scan not found" });
+      }
+
+      const reportData = {
+        serverIp,
+        gmodVersion,
+        issues: scanData.issues,
+        files: [],
+        addons: [],
+        exploits: []
+      };
+
+      // Create the report
+      const report = await storage.createReport(reportData);
+
+      // Notify WebSocket client if connected
+      if (scanData.ws) {
+        scanData.ws.send(JSON.stringify({
+          type: "scan_complete",
+          reportId: report.reportId
+        }));
+      }
+
+      // Cleanup
+      if (scanData.timeout) {
+        clearTimeout(scanData.timeout!);
+      }
+      activeScans.delete(scanId);
+
+      return res.status(201).json({
+        message: "Report created successfully",
+        reportId: report.reportId,
+        url: `/report/${report.reportId}`
+      });
+    } catch (error) {
+      console.error("Error completing analysis:", error);
+      return res.status(500).json({ message: "Failed to complete analysis" });
+    }
+  });
+
+  // Generate the console command for server owners
+  app.get("/api/console-command", (req, res) => {
+    try {
+      const scanId = nanoid();
+      const baseUrl = process.env.BASE_URL || req.get("host") || "localhost:5000";
+      const protocol = "https"; // Always use HTTPS
+
+      const commandUrl = `${protocol}://${baseUrl}/api/scanner-code?scan=${scanId}`;
       const consoleCommand = `lua_run http.Fetch("${commandUrl}", function(body) RunString(body) end)`;
 
-      return res.json({ command: consoleCommand });
+      return res.json({ 
+        command: consoleCommand,
+        scanId: scanId
+      });
     } catch (error) {
       console.error("Error generating command:", error);
-      return res
-        .status(500)
-        .json({ message: "Failed to generate console command" });
+      return res.status(500).json({ message: "Failed to generate console command" });
     }
   });
 
   // Endpoint that returns the Lua code to be executed on the server
-  app.get("/api/scanner-code", (req: Request, res: Response) => {
+  app.get("/api/scanner-code", (req, res) => {
     try {
-      const serverIp = (req.query.server as string) || "unknown";
-      const baseUrl =
-        process.env.BASE_URL || req.get("host") || "localhost:5000";
-      // This is the Lua code that will be executed on the GMod server to analyze it
-      // Based on BadCoderz library but simplified for web integration
-      const luaCode = `
--- GMod Code Scanner based on BadCoderz by ExtReMLapin
--- Web adaptation version 1.0.0
+      const scanId = (req.query.scan as string) || nanoid();
+      const baseUrl = process.env.BASE_URL || req.get("host") || "localhost:5000";
 
-local scannerVersion = "1.0.0"
-local serverIp = game.GetIPAddress() or "${serverIp}"
-local baseUrl = "https://${baseUrl}"
+      // Read the scanner code template
+      const scannerCode = fs.readFileSync(
+        path.join(__dirname, "scanner-code.lua"),
+        "utf8"
+      );
 
-print("[CodeScan] Starting GMod server code analysis...")
-print("[CodeScan] This might take a few seconds...")
-
--- Initialize ConVars scanning
-local dangerous_convars = {
-  sv_allowcslua = { default = "1", dangerous = "1", safe = "0", description = "Allow clients to run Lua code on the server" },
-  sv_cheats = { default = "0", dangerous = "1", safe = "0", description = "Allow cheats on server" },
-  sv_kickerrornum = { default = "0", dangerous = "0", safe = "10", description = "Kick clients that exceed this number of errors" },
-  host_timescale = { default = "1", dangerous = "above 1", safe = "1", description = "Sets the game speed" },
-  net_maxfilesize = { default = "16", dangerous = "above 64", safe = "16", description = "Maximum file size for uploads" },
-  sv_allowupload = { default = "1", dangerous = "1", safe = "0", description = "Allow clients to upload files" },
-  sv_alltalk = { default = "0", dangerous = "1", safe = "0", description = "Players can hear all other players" },
-  sv_allowdownload = { default = "1", dangerous = "1", safe = "0", description = "Allow clients to download files" },
-  sv_logecho = { default = "1", dangerous = "0", safe = "1", description = "Echo log to console" },
-  sv_logfile = { default = "1", dangerous = "0", safe = "1", description = "Log server information to file" },
-  lua_allow_http_requests = { default = "0", dangerous = "1", safe = "0", description = "Allow Lua HTTP Requests" }
-}
-
--- Initialize BadCoderz-like definitions
-local dangerous_hooks = {
-  ["Tick"] = true,
-  ["Think"] = true,
-  ["PlayerTick"] = true,
-  ["HUDAmmoPickedUp"] = true,
-  ["HUDPaint"] = true,
-  ["HUDPaintBackground"] = true,
-  ["Paint"] = true,
-  ["DrawOverlay"] = true,
-  ["DrawPhysgunBeam"] = true,
-  ["PostDrawEffects"] = true,
-  ["PostDrawHUD"] = true,
-  ["PostDrawOpaqueRenderables"] = true,
-  ["PostDrawSkyBox"] = true,
-  ["PostDrawTranslucentRenderables"] = true,
-  ["PreDrawEffects"] = true,
-  ["PreDrawHalos"] = true,
-  ["PreDrawHUD"] = true,
-  ["PreDrawOpaqueRenderables"] = true,
-  ["PreDrawSkyBox"] = true,
-  ["PreDrawTranslucentRenderables"] = true,
-  ["Move"] = true,
-  ["Draw"] = true,
-  ["DrawTranslucent"] = true,
-  ["CalcView"] = true,
-  ["DrawWorldModel"] = true,
-  ["DrawWorldModelTranslucent"] = true,
-  ["ViewModelDrawn"] = true
-}
-
-local heavy_funcs = {
-  ["player.GetAll"] = "Gets all players on the server",
-  ["ents.GetAll"] = "Gets all entities on the server",
-  ["file.Append"] = "Appends to a file (I/O operation)",
-  ["file.CreateDir"] = "Creates a directory (I/O operation)",
-  ["file.Delete"] = "Deletes a file (I/O operation)",
-  ["file.Exists"] = "Checks if a file exists (I/O operation)",
-  ["file.Find"] = "Finds files (I/O operation)",
-  ["file.Read"] = "Reads a file (I/O operation)",
-  ["file.Write"] = "Writes to a file (I/O operation)",
-  ["Color"] = "Creates a color object",
-  ["Vector"] = "Creates a vector object",
-  ["Angle"] = "Creates an angle object",
-  ["CompileString"] = "Compiles a string into a function",
-  ["RunString"] = "Executes Lua code from a string",
-  ["RunStringEx"] = "Executes Lua code from a string with environment",
-  ["table.HasValue"] = "Checks if a table contains a value (inefficient for large tables)"
-}
-
--- Client-specific concerns
-if CLIENT then
-  heavy_funcs["surface.CreateFont"] = "Creates a font"
-  heavy_funcs["surface.GetTextureID"] = "Gets a texture ID from disk"
-  heavy_funcs["Material"] = "Creates a material object"
-  heavy_funcs["vgui.Create"] = "Creates a VGUI element"
-end
-
--- Initialize results
-local issues = {}
-local exploits = {}
-local files = {}
-local addons = {}
-local addonsTable = {}
-
--- Scan for bad patterns in hooks
-print("[CodeScan] Scanning hooks...")
-for hookName, hookTable in pairs(hook.GetTable()) do
-  local isDangerousHook = dangerous_hooks[hookName] or false
-  
-  for addonName, hookFunc in pairs(hookTable) do
-    local info = debug.getinfo(hookFunc)
-    if info and info.short_src then
-      -- Track this file
-      local filePath = info.short_src
-      local addonName = string.match(filePath, "addons/([^/]+)") or "unknown"
-      
-      if not addonsTable[addonName] then
-        addonsTable[addonName] = { name = addonName, files = 0, issues = 0 }
-      end
-      
-      local fileSize = 0
-      if file.Exists(filePath, "GAME") then
-        fileSize = file.Size(filePath, "GAME")
-      end
-      
-      -- Add to files list if not present
-      local fileExists = false
-      for _, f in ipairs(files) do
-        if f.path == filePath then
-          fileExists = true
-          break
-        end
-      end
-      
-      if not fileExists then
-        table.insert(files, {
-          path = filePath,
-          addon = addonName,
-          type = "lua",
-          size = fileSize,
-          issues = 0
-        })
-        addonsTable[addonName].files = addonsTable[addonName].files + 1
-      end
-      
-      -- Check the function source code if possible
-      local source = ""
-      if file.Exists(filePath, "GAME") then
-        source = file.Read(filePath, "GAME") or ""
-      end
-      
-      -- Check for heavy functions in dangerous hooks
-      if isDangerousHook then
-        -- We can't decompile the function easily, so we'll scan the source code
-        -- for known problematic patterns
-        for funcName, description in pairs(heavy_funcs) do
-          if string.find(funcName, "%.") then
-            -- It's a library function like player.GetAll
-            local lib, func = string.match(funcName, "([^.]+)%.([^.]+)")
-            if lib and func and string.find(source, lib .. "%." .. func) then
-              local issueId = "issue_" .. #issues + 1
-              table.insert(issues, {
-                id = issueId,
-                title = funcName .. "() called in " .. hookName .. " hook",
-                description = "Using " .. funcName .. " in " .. hookName .. " can cause performance issues. " .. description,
-                severity = "performance",
-                occurrences = 1,
-                filePath = filePath,
-                lineNumber = info.linedefined,
-                code = lib .. "." .. func .. "()",
-                recommendation = "Cache results outside of the hook or use a less frequent hook"
-              })
-              
-              -- Update issue count
-              addonsTable[addonName].issues = addonsTable[addonName].issues + 1
-              for i, f in ipairs(files) do
-                if f.path == filePath then
-                  files[i].issues = files[i].issues + 1
-                  break
-                end
-              end
-            end
-          else
-            -- It's a global function like Color or Vector
-            if string.find(source, funcName .. "%(") then
-              local issueId = "issue_" .. #issues + 1
-              table.insert(issues, {
-                id = issueId,
-                title = funcName .. "() with static arguments in " .. hookName,
-                description = "Creating " .. funcName .. " objects in " .. hookName .. " hook can cause performance issues.",
-                severity = "performance",
-                occurrences = 1,
-                filePath = filePath,
-                lineNumber = info.linedefined,
-                code = "local obj = " .. funcName .. "(255, 255, 255, 255)",
-                recommendation = "Cache the " .. funcName .. " object outside of the hook"
-              })
-              
-              -- Update issue count
-              addonsTable[addonName].issues = addonsTable[addonName].issues + 1
-              for i, f in ipairs(files) do
-                if f.path == filePath then
-                  files[i].issues = files[i].issues + 1
-                  break
-                end
-              end
-            end
-          end
-        end
-      end
-    end
-  end
-end
-
--- Scan for ConVars
-print("[CodeScan] Scanning ConVars...")
-
-local convar_issues = {}
-
--- Get the actual values from the server
-for convar_name, convar_info in pairs(dangerous_convars) do
-  local value = GetConVarString(convar_name) or "N/A"
-  local default = convar_info.default
-  local dangerous = convar_info.dangerous
-  local safe = convar_info.safe
-  local description = convar_info.description
-  
-  -- Check if the value is dangerous
-  local is_dangerous = false
-  if dangerous == "above 1" then
-    is_dangerous = tonumber(value) and tonumber(value) > 1
-  else
-    is_dangerous = value == dangerous
-  end
-  
-  -- If dangerous, add to issues
-  if is_dangerous then
-    local issueId = "convar_" .. #convar_issues + 1
-    table.insert(issues, {
-      id = issueId,
-      title = "Dangerous ConVar: " .. convar_name,
-      description = "The ConVar " .. convar_name .. " is set to a potentially dangerous value: " .. value .. ". " .. description,
-      severity = "security",
-      occurrences = 1,
-      filePath = "ConVars",
-      lineNumber = 0,
-      code = convar_name .. " " .. value .. " // Default: " .. default,
-      recommendation = "Consider setting this ConVar to " .. safe .. " for better security"
-    })
-    
-    -- Add to convar_issues for reference
-    table.insert(convar_issues, {
-      name = convar_name,
-      current = value,
-      default = default,
-      safe = safe,
-      description = description,
-      is_dangerous = is_dangerous
-    })
-  end
-end
-
--- Skip security exploits scan
-print("[CodeScan] Analysis of hooks, functions and ConVars complete!")
-
--- Finalize addon list
-for _, addon in pairs(addonsTable) do
-  table.insert(addons, addon)
-end
-
-print("[CodeScan] Analysis complete! Sending results...")
-
--- Convert data to string parameters (http.Post requires string keys and values)
-local scan_data = {
-  serverIp = serverIp,
-  gmodVersion = GAMEMODE and GAMEMODE.Version or tostring(VERSION) or "unknown",
-  issues = util.TableToJSON(issues),
-  exploits = util.TableToJSON(exploits),
-  files = util.TableToJSON(files),
-  addons = util.TableToJSON(addons)
-}
-
-http.Post(baseUrl .. "/api/analyze", scan_data, function(body, size, headers, code)
-  if code == 201 then
-    local response = util.JSONToTable(body)
-    if response and response.url then
-      print("[CodeScan] 🎉 Analysis complete! View your report at: " .. baseUrl .. response.url)
-    else
-      print("[CodeScan] ✅ Analysis complete! Report created successfully.")
-    end
-  else
-    print("[CodeScan] ❌ Error submitting results: " .. code)
-    print("[CodeScan] Response: " .. body)
-  end
-end, function(err)
-  print("[CodeScan] ❌ Failed to submit results: " .. err)
-end)
-      `;
+      // Replace placeholders with actual values
+      const luaCode = scannerCode
+        .replace(/\${baseUrl}/g, baseUrl)
+        .replace(/\${scanId}/g, scanId);
 
       res.set("Content-Type", "text/plain");
       return res.send(luaCode);
     } catch (error) {
       console.error("Error generating scanner code:", error);
-      return res
-        .status(500)
-        .json({ message: "Failed to generate scanner code" });
+      return res.status(500).json({ message: "Failed to generate scanner code" });
     }
   });
-
-  const httpServer = createServer(app);
 
   return httpServer;
 }
