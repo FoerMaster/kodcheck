@@ -13,11 +13,11 @@ export default function Home() {
   const [_, setLocation] = useLocation();
   const { toast } = useToast();
   
-  const { data: recentReports } = useQuery({
+  const { data: recentReports = [] } = useQuery<any[]>({
     queryKey: ['/api/reports?limit=5'],
   });
   
-  const { data: commandData, isLoading: commandLoading } = useQuery({
+  const { data: commandData, isLoading: commandLoading } = useQuery<{command: string}>({
     queryKey: [`/api/console-command${serverIp ? `?serverIp=${encodeURIComponent(serverIp)}` : ''}`],
     enabled: !!serverIp,
   });

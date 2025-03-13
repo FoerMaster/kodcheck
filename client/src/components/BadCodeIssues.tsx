@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { highlightCode } from "@/utils/codeHighlight";
-import { FaExclamationTriangle, FaCopy, FaLightbulb, FaExternalLinkAlt, FaCode } from "react-icons/fa";
+import { FaExclamationTriangle, FaCopy, FaLightbulb, FaExternalLinkAlt, FaCode, FaCheck } from "react-icons/fa";
 
 interface Issue {
   id: string;
