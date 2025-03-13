@@ -41,16 +41,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create a new report from scan data
   app.post("/api/analyze", async (req: Request, res: Response) => {
     try {
-      // Parse nested JSON fields from form data
+      // Handle both JSON and form data
       const formData = req.body;
-      const parsedData = {
-        serverIp: formData.serverIp,
-        gmodVersion: formData.gmodVersion,
-        issues: JSON.parse(formData.issues || "[]"),
-        exploits: JSON.parse(formData.exploits || "[]"),
-        files: JSON.parse(formData.files || "[]"),
-        addons: JSON.parse(formData.addons || "[]")
-      };
+      let parsedData;
+      
+      // Check if the data is already JSON (from Garry's Mod Lua HTTP)
+      if (typeof formData === 'object' && formData.serverIp) {
+        parsedData = {
+          serverIp: formData.serverIp,
+          gmodVersion: formData.gmodVersion,
+          issues: Array.isArray(formData.issues) ? formData.issues : [],
+          exploits: Array.isArray(formData.exploits) ? formData.exploits : [],
+          files: Array.isArray(formData.files) ? formData.files : [],
+          addons: Array.isArray(formData.addons) ? formData.addons : []
+        };
+      } else {
+        // Parse nested JSON fields from form data
+        parsedData = {
+          serverIp: formData.serverIp,
+          gmodVersion: formData.gmodVersion,
+          issues: JSON.parse(formData.issues || "[]"),
+          exploits: JSON.parse(formData.exploits || "[]"),
+          files: JSON.parse(formData.files || "[]"),
+          addons: JSON.parse(formData.addons || "[]")
+        };
+      }
       
       // Validate the incoming scan data against our schema
       const scanData = scanDataSchema.parse(parsedData);
