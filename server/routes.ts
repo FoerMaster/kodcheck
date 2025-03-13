@@ -41,8 +41,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create a new report from scan data
   app.post("/api/analyze", async (req: Request, res: Response) => {
     try {
+      // Parse nested JSON fields from form data
+      const formData = req.body;
+      const parsedData = {
+        serverIp: formData.serverIp,
+        gmodVersion: formData.gmodVersion,
+        issues: JSON.parse(formData.issues || "[]"),
+        exploits: JSON.parse(formData.exploits || "[]"),
+        files: JSON.parse(formData.files || "[]"),
+        addons: JSON.parse(formData.addons || "[]")
+      };
+      
       // Validate the incoming scan data against our schema
-      const scanData = scanDataSchema.parse(req.body);
+      const scanData = scanDataSchema.parse(parsedData);
 
       // Create the report
       const report = await storage.createReport(scanData);
@@ -294,17 +305,17 @@ end
 
 print("[CodeScan] Analysis complete! Sending results...")
 
--- Send results to our web service
-local json = util.TableToJSON({
+-- Convert data to string parameters (http.Post requires string keys and values)
+local scan_data = {
   serverIp = serverIp,
   gmodVersion = GAMEMODE and GAMEMODE.Version or tostring(VERSION) or "unknown",
-  issues = issues,
-  exploits = exploits,
-  files = files,
-  addons = addons
-})
+  issues = util.TableToJSON(issues),
+  exploits = util.TableToJSON(exploits),
+  files = util.TableToJSON(files),
+  addons = util.TableToJSON(addons)
+}
 
-http.Post(baseUrl .. "/api/analyze", json, function(body, size, headers, code)
+http.Post(baseUrl .. "/api/analyze", scan_data, function(body, size, headers, code)
   if code == 201 then
     local response = util.JSONToTable(body)
     if response and response.url then
@@ -318,7 +329,7 @@ http.Post(baseUrl .. "/api/analyze", json, function(body, size, headers, code)
   end
 end, function(err)
   print("[CodeScan] ❌ Failed to submit results: " .. err)
-end, { ["Content-Type"] = "application/json" })
+end)
       `;
 
       res.set("Content-Type", "text/plain");
