@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import Sidebar from "@/components/Sidebar";
 import ReportOverview from "@/components/ReportOverview";
 import BadCodeIssues from "@/components/BadCodeIssues";
-import PotentialExploits from "@/components/PotentialExploits";
+// PotentialExploits component removed
 import ScannedFiles from "@/components/ScannedFiles";
 import Addons from "@/components/Addons";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,7 @@ export default function Report() {
   const sectionRefs = {
     overview: useRef<HTMLElement>(null),
     issues: useRef<HTMLElement>(null),
-    exploits: useRef<HTMLElement>(null),
+    // exploits section removed
     files: useRef<HTMLElement>(null),
     addons: useRef<HTMLElement>(null)
   };
@@ -62,14 +62,7 @@ export default function Report() {
       reportText += `   Recommendation: ${issue.recommendation}\n\n`;
     });
     
-    reportText += `POTENTIAL EXPLOITS\n`;
-    reportText += `----------------\n`;
-    report.potentialExploits.forEach((exploit: any, index: number) => {
-      reportText += `${index + 1}. ${exploit.title} (${exploit.severity})\n`;
-      reportText += `   File: ${exploit.filePath}:${exploit.lineNumber}\n`;
-      reportText += `   Description: ${exploit.description}\n`;
-      reportText += `   Recommendation: ${exploit.recommendation}\n\n`;
-    });
+    // Exploit section removed as per new requirements
     
     // Create a download link
     const blob = new Blob([reportText], { type: 'text/plain' });
@@ -179,9 +172,7 @@ export default function Report() {
             <BadCodeIssues issues={report.badCodeIssues} />
           </section>
           
-          <section ref={sectionRefs.exploits} id="exploits" className="mb-10">
-            <PotentialExploits exploits={report.potentialExploits} />
-          </section>
+          {/* Exploit section hidden as per new requirements */}
           
           <section ref={sectionRefs.files} id="files" className="mb-10">
             <ScannedFiles files={report.scannedFilesList} />

@@ -25,11 +25,7 @@ export default function Sidebar({ serverInfo, activeSection, onSectionChange }: 
       label: "Проблемы кода",
       icon: <FaExclamationTriangle className="h-4 w-4 mr-3 text-red-400" />
     },
-    {
-      id: "exploits",
-      label: "Потенциальные эксплойты",
-      icon: <FaLock className="h-4 w-4 mr-3 text-amber-400" />
-    },
+    /* Exploits section removed */
     {
       id: "files",
       label: "Просканированные файлы",
