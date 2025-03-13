@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { FaHome, FaExclamationTriangle, FaLock, FaFolder, FaPuzzlePiece, FaShare, FaFileExport } from "react-icons/fa";
 
 interface ServerInfo {
   ip: string;
@@ -16,70 +17,53 @@ export default function Sidebar({ serverInfo, activeSection, onSectionChange }: 
   const navItems = [
     {
       id: "overview",
-      label: "Overview",
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-        </svg>
-      )
+      label: "Обзор",
+      icon: <FaHome className="h-4 w-4 mr-3 text-blue-400" />
     },
     {
       id: "issues",
-      label: "Bad Code Issues",
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-        </svg>
-      )
+      label: "Проблемы кода",
+      icon: <FaExclamationTriangle className="h-4 w-4 mr-3 text-red-400" />
     },
     {
       id: "exploits",
-      label: "Potential Exploits",
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-        </svg>
-      )
+      label: "Потенциальные эксплойты",
+      icon: <FaLock className="h-4 w-4 mr-3 text-amber-400" />
     },
     {
       id: "files",
-      label: "Scanned Files",
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-        </svg>
-      )
+      label: "Просканированные файлы",
+      icon: <FaFolder className="h-4 w-4 mr-3 text-green-400" />
     },
     {
       id: "addons",
-      label: "Addons",
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-        </svg>
-      )
+      label: "Аддоны",
+      icon: <FaPuzzlePiece className="h-4 w-4 mr-3 text-purple-400" />
     }
   ];
   
   return (
-    <div className="w-full lg:w-64 bg-slate-800 border-r border-slate-700 flex flex-col">
+    <div className="w-full lg:w-64 bg-gray-900 border-r border-gray-800 flex flex-col shadow-xl">
       {/* Logo area */}
-      <div className="p-4 border-b border-slate-700 flex items-center">
+      <div className="p-4 border-b border-gray-800 bg-gradient-to-r from-blue-900 to-indigo-900">
         <div className="flex items-center space-x-2">
-          <div className="bg-primary rounded-md p-1.5">
+          <div className="bg-blue-600 rounded-md p-1.5">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
             </svg>
           </div>
           <Link href="/">
-            <span className="text-xl font-semibold cursor-pointer">CodeScan</span>
+            <div className="cursor-pointer">
+              <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-300">CodeScan</span>
+              <div className="text-xs text-blue-300">BadCoderz Web Edition</div>
+            </div>
           </Link>
         </div>
       </div>
 
       {/* Navigation */}
       <nav className="py-4 flex-grow">
-        <div className="px-4 mb-2 text-sm font-medium text-slate-400">REPORT</div>
+        <div className="px-4 mb-2 text-sm font-medium text-blue-300 uppercase tracking-wider">Отчет</div>
         
         {navItems.map(item => (
           <a 
@@ -87,9 +71,9 @@ export default function Sidebar({ serverInfo, activeSection, onSectionChange }: 
             href={`#${item.id}`}
             className={`flex items-center px-4 py-2 text-sm font-medium ${
               activeSection === item.id 
-                ? 'text-white bg-slate-700' 
-                : 'text-slate-300 hover:bg-slate-700 hover:text-white'
-            } mb-1`}
+                ? 'text-white bg-gray-800 border-l-2 border-blue-500' 
+                : 'text-gray-300 hover:bg-gray-800 hover:text-white border-l-2 border-transparent'
+            } mb-1 transition-all duration-150`}
             onClick={(e) => {
               e.preventDefault();
               onSectionChange(item.id);
@@ -102,50 +86,48 @@ export default function Sidebar({ serverInfo, activeSection, onSectionChange }: 
           </a>
         ))}
         
-        <div className="px-4 my-4 text-sm font-medium text-slate-400">ACTIONS</div>
+        <div className="px-4 my-4 text-sm font-medium text-blue-300 uppercase tracking-wider">Действия</div>
         <a 
           href="#" 
-          className="flex items-center px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-700 hover:text-white mb-1"
+          className="flex items-center px-4 py-2 text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-white mb-1 border-l-2 border-transparent transition-all duration-150"
           onClick={(e) => {
             e.preventDefault();
             const url = window.location.href;
             navigator.clipboard.writeText(url);
           }}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-          </svg>
-          Share Report
+          <FaShare className="h-4 w-4 mr-3 text-blue-400" />
+          Поделиться отчетом
         </a>
         <a 
           href="#" 
-          className="flex items-center px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-700 hover:text-white mb-1"
+          className="flex items-center px-4 py-2 text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-white mb-1 border-l-2 border-transparent transition-all duration-150"
           onClick={(e) => {
             e.preventDefault();
             // Handled in parent component
           }}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-          </svg>
-          Export Report
+          <FaFileExport className="h-4 w-4 mr-3 text-blue-400" />
+          Экспорт отчета
         </a>
       </nav>
 
       {/* Server info */}
-      <div className="p-4 border-t border-slate-700">
-        <div className="text-xs font-medium text-slate-400 mb-2">SERVER INFO</div>
-        <div className="text-sm mb-1 flex justify-between">
-          <span className="text-slate-400">IP:</span>
-          <span>{serverInfo.ip}</span>
-        </div>
-        <div className="text-sm mb-1 flex justify-between">
-          <span className="text-slate-400">GMod:</span>
-          <span>{serverInfo.gmodVersion}</span>
-        </div>
-        <div className="text-sm mb-1 flex justify-between">
-          <span className="text-slate-400">Scan Date:</span>
-          <span>{serverInfo.scanDate}</span>
+      <div className="p-4 border-t border-gray-800 bg-gray-800">
+        <div className="text-xs font-medium text-blue-300 uppercase tracking-wider mb-3">Информация о сервере</div>
+        <div className="bg-gray-900 rounded-lg p-3 border border-gray-700 text-sm space-y-2">
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400">IP:</span>
+            <span className="text-gray-200 font-mono">{serverInfo.ip}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400">GMod:</span>
+            <span className="text-gray-200">{serverInfo.gmodVersion}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400">Дата сканирования:</span>
+            <span className="text-gray-200">{serverInfo.scanDate}</span>
+          </div>
         </div>
       </div>
     </div>

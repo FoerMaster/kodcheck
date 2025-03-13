@@ -92,128 +92,266 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const baseUrl = process.env.BASE_URL || req.get("host") || "localhost:5000";
       const protocol = req.secure ? "https" : "http";
       
-      // This would be the Lua code that collects information about the server
-      // In a real implementation, this would be a complex Lua script that analyzes the server
+      // This is the Lua code that will be executed on the GMod server to analyze it
+      // Based on BadCoderz library but simplified for web integration
       const luaCode = `
+-- GMod Code Scanner based on BadCoderz by ExtReMLapin
+-- Web adaptation version 1.0.0
+
 local scannerVersion = "1.0.0"
 local serverIp = "${serverIp}"
 local baseUrl = "${protocol}://${baseUrl}"
 
--- Simple example of what the scanner would do
--- In a real implementation, this would use BadCoderz-like analysis
-local function scanServer()
-  print("[CodeScan] Starting server code analysis...")
+print("[CodeScan] Starting GMod server code analysis...")
+print("[CodeScan] This might take a few seconds...")
+
+-- Initialize BadCoderz-like definitions
+local dangerous_hooks = {
+  ["Tick"] = true,
+  ["Think"] = true,
+  ["PlayerTick"] = true,
+  ["HUDAmmoPickedUp"] = true,
+  ["HUDPaint"] = true,
+  ["HUDPaintBackground"] = true,
+  ["Paint"] = true,
+  ["DrawOverlay"] = true,
+  ["DrawPhysgunBeam"] = true,
+  ["PostDrawEffects"] = true,
+  ["PostDrawHUD"] = true,
+  ["PostDrawOpaqueRenderables"] = true,
+  ["PostDrawSkyBox"] = true,
+  ["PostDrawTranslucentRenderables"] = true,
+  ["PreDrawEffects"] = true,
+  ["PreDrawHalos"] = true,
+  ["PreDrawHUD"] = true,
+  ["PreDrawOpaqueRenderables"] = true,
+  ["PreDrawSkyBox"] = true,
+  ["PreDrawTranslucentRenderables"] = true,
+  ["Move"] = true,
+  ["Draw"] = true,
+  ["DrawTranslucent"] = true,
+  ["CalcView"] = true,
+  ["DrawWorldModel"] = true,
+  ["DrawWorldModelTranslucent"] = true,
+  ["ViewModelDrawn"] = true
+}
+
+local heavy_funcs = {
+  ["player.GetAll"] = "Gets all players on the server",
+  ["ents.GetAll"] = "Gets all entities on the server",
+  ["file.Append"] = "Appends to a file (I/O operation)",
+  ["file.CreateDir"] = "Creates a directory (I/O operation)",
+  ["file.Delete"] = "Deletes a file (I/O operation)",
+  ["file.Exists"] = "Checks if a file exists (I/O operation)",
+  ["file.Find"] = "Finds files (I/O operation)",
+  ["file.Read"] = "Reads a file (I/O operation)",
+  ["file.Write"] = "Writes to a file (I/O operation)",
+  ["Color"] = "Creates a color object",
+  ["Vector"] = "Creates a vector object",
+  ["Angle"] = "Creates an angle object",
+  ["CompileString"] = "Compiles a string into a function",
+  ["RunString"] = "Executes Lua code from a string",
+  ["RunStringEx"] = "Executes Lua code from a string with environment",
+  ["table.HasValue"] = "Checks if a table contains a value (inefficient for large tables)"
+}
+
+-- Client-specific concerns
+if CLIENT then
+  heavy_funcs["surface.CreateFont"] = "Creates a font"
+  heavy_funcs["surface.GetTextureID"] = "Gets a texture ID from disk"
+  heavy_funcs["Material"] = "Creates a material object"
+  heavy_funcs["vgui.Create"] = "Creates a VGUI element"
+end
+
+-- Initialize results
+local issues = {}
+local exploits = {}
+local files = {}
+local addons = {}
+local addonsTable = {}
+
+-- Scan for bad patterns in hooks
+print("[CodeScan] Scanning hooks...")
+for hookName, hookTable in pairs(hook.GetTable()) do
+  local isDangerousHook = dangerous_hooks[hookName] or false
   
-  -- Collect server information
-  local gmodVersion = GAMEMODE and GAMEMODE.Version or "unknown"
-  
-  -- Initialize results
-  local issues = {}
-  local exploits = {}
-  local files = {}
-  local addons = {}
-  
-  -- Example scan logic (this would be much more complex in reality)
-  -- Scan for bad code patterns in hooks
-  for hookName, hookTable in pairs(hook.GetTable()) do
-    for addonName, hookFunc in pairs(hookTable) do
-      local info = debug.getinfo(hookFunc)
-      if info and info.short_src then
-        -- Example check: Material.GetTexture in render hooks
-        if hookName == "HUDPaint" and string.find(info.short_src, "bf4_hud") then
-          table.insert(issues, {
-            id = "issue_" .. #issues + 1,
-            title = "Material.GetTexture() called in render hook",
-            description = "Reading textures during rendering causes severe performance issues",
-            severity = "critical",
-            occurrences = 28,
-            filePath = info.short_src,
-            lineNumber = info.linedefined,
-            code = "local health_icon = Material.GetTexture(\\\"materials/bf4_hud/health.png\\\")",
-            recommendation = "Cache materials outside of rendering hooks"
-          })
-        end
-        
-        -- Track files
-        if not table.HasValue(files, info.short_src) then
-          table.insert(files, {
-            path = info.short_src,
-            addon = string.match(info.short_src, "addons/([^/]+)") or "unknown",
-            type = "lua",
-            size = 1024, -- Mock size
-            issues = 1
-          })
+  for addonName, hookFunc in pairs(hookTable) do
+    local info = debug.getinfo(hookFunc)
+    if info and info.short_src then
+      -- Track this file
+      local filePath = info.short_src
+      local addonName = string.match(filePath, "addons/([^/]+)") or "unknown"
+      
+      if not addonsTable[addonName] then
+        addonsTable[addonName] = { name = addonName, files = 0, issues = 0 }
+      end
+      
+      local fileSize = 0
+      if file.Exists(filePath, "GAME") then
+        fileSize = file.Size(filePath, "GAME")
+      end
+      
+      -- Add to files list if not present
+      local fileExists = false
+      for _, f in ipairs(files) do
+        if f.path == filePath then
+          fileExists = true
+          break
         end
       end
-    end
-  end
-  
-  -- Example: Check for potential RunString exploits
-  for k, v in pairs(_G) do
-    if type(v) == "function" and string.find(k, "RunString") then
-      local refs = debug.getreferences(v)
-      if refs then
-        for _, ref in ipairs(refs) do
-          if string.find(ref.source, "net.Receive") then
-            table.insert(exploits, {
-              id = "exploit_" .. #exploits + 1,
-              title = "Unfiltered RunString in net message",
-              description = "Code found that executes arbitrary strings received over the network without validation",
-              severity = "critical",
-              filePath = ref.source,
-              lineNumber = ref.line,
-              code = "net.Receive(\\\"SyncConfig\\\", function(len, ply)\\n  local configStr = net.ReadString()\\n  RunString(configStr, \\\"ConfigSync\\\")\\nend)",
-              recommendation = "Remove immediately or implement strict validation"
-            })
+      
+      if not fileExists then
+        table.insert(files, {
+          path = filePath,
+          addon = addonName,
+          type = "lua",
+          size = fileSize,
+          issues = 0
+        })
+        addonsTable[addonName].files = addonsTable[addonName].files + 1
+      end
+      
+      -- Check the function source code if possible
+      local source = ""
+      if file.Exists(filePath, "GAME") then
+        source = file.Read(filePath, "GAME") or ""
+      end
+      
+      -- Check for heavy functions in dangerous hooks
+      if isDangerousHook then
+        -- We can't decompile the function easily, so we'll scan the source code
+        -- for known problematic patterns
+        for funcName, description in pairs(heavy_funcs) do
+          if string.find(funcName, "%.") then
+            -- It's a library function like player.GetAll
+            local lib, func = string.match(funcName, "([^.]+)%.([^.]+)")
+            if lib and func and string.find(source, lib .. "%." .. func) then
+              local issueId = "issue_" .. #issues + 1
+              table.insert(issues, {
+                id = issueId,
+                title = funcName .. "() called in " .. hookName .. " hook",
+                description = "Using " .. funcName .. " in " .. hookName .. " can cause performance issues. " .. description,
+                severity = "performance",
+                occurrences = 1,
+                filePath = filePath,
+                lineNumber = info.linedefined,
+                code = lib .. "." .. func .. "()",
+                recommendation = "Cache results outside of the hook or use a less frequent hook"
+              })
+              
+              -- Update issue count
+              addonsTable[addonName].issues = addonsTable[addonName].issues + 1
+              for i, f in ipairs(files) do
+                if f.path == filePath then
+                  files[i].issues = files[i].issues + 1
+                  break
+                end
+              end
+            end
+          else
+            -- It's a global function like Color or Vector
+            if string.find(source, funcName .. "%(") then
+              local issueId = "issue_" .. #issues + 1
+              table.insert(issues, {
+                id = issueId,
+                title = funcName .. "() with static arguments in " .. hookName,
+                description = "Creating " .. funcName .. " objects in " .. hookName .. " hook can cause performance issues.",
+                severity = "performance",
+                occurrences = 1,
+                filePath = filePath,
+                lineNumber = info.linedefined,
+                code = funcName .. "(255, 255, 255, 255) -- example",
+                recommendation = "Cache the " .. funcName .. " object outside of the hook"
+              })
+              
+              -- Update issue count
+              addonsTable[addonName].issues = addonsTable[addonName].issues + 1
+              for i, f in ipairs(files) do
+                if f.path == filePath then
+                  files[i].issues = files[i].issues + 1
+                  break
+                end
+              end
+            end
           end
         end
       end
     end
   end
-  
-  -- Build addon list
-  local addonsTable = {}
-  for _, file in ipairs(files) do
-    local addon = file.addon
-    if not addonsTable[addon] then
-      addonsTable[addon] = { name = addon, files = 0, issues = 0 }
-    end
-    addonsTable[addon].files = addonsTable[addon].files + 1
-    addonsTable[addon].issues = addonsTable[addon].issues + 1
-  end
-  
-  for _, addon in pairs(addonsTable) do
-    table.insert(addons, addon)
-  end
-  
-  -- Send results to our web service
-  local json = util.TableToJSON({
-    serverIp = serverIp,
-    gmodVersion = gmodVersion,
-    issues = issues,
-    exploits = exploits,
-    files = files,
-    addons = addons
-  })
-  
-  http.Post(baseUrl .. "/api/analyze", json, function(body, size, headers, code)
-    if code == 201 then
-      local response = util.JSONToTable(body)
-      if response and response.url then
-        print("[CodeScan] Analysis complete! View your report at: " .. baseUrl .. response.url)
-      else
-        print("[CodeScan] Analysis complete! Report created successfully.")
-      end
-    else
-      print("[CodeScan] Error submitting results: " .. code)
-    end
-  end, function(err)
-    print("[CodeScan] Failed to submit results: " .. err)
-  end, { ["Content-Type"] = "application/json" })
 end
 
--- Run the scanner
-scanServer()
+-- Scan for potential security exploits
+print("[CodeScan] Scanning for security vulnerabilities...")
+for k, v in pairs(_G) do
+  if type(v) == "function" and (k == "RunString" or k == "CompileString" or k == "RunStringEx") then
+    -- Look for uses of these functions in the source code
+    for _, filePath in ipairs(files) do
+      local path = filePath.path
+      if file.Exists(path, "GAME") then
+        local source = file.Read(path, "GAME") or ""
+        
+        -- Check for RunString with net.Receive patterns
+        if string.find(source, "net%.Receive") and string.find(source, k) then
+          local exploitId = "exploit_" .. #exploits + 1
+          local addonName = filePath.addon
+          
+          table.insert(exploits, {
+            id = exploitId,
+            title = "Potential " .. k .. " exploit in network code",
+            description = "Code found that might execute arbitrary strings received over the network without validation",
+            severity = "critical",
+            filePath = path,
+            lineNumber = 0, -- We don't know the exact line
+            code = "net.Receive(\"SomeMessage\", function(len, ply)\\n  local data = net.ReadString()\\n  " .. k .. "(data)\\nend)", -- Example
+            recommendation = "Never run code from network messages without strict validation"
+          })
+          
+          -- Update issue count
+          addonsTable[addonName].issues = addonsTable[addonName].issues + 1
+          for i, f in ipairs(files) do
+            if f.path == path then
+              files[i].issues = files[i].issues + 1
+              break
+            end
+          end
+        end
+      end
+    end
+  end
+end
+
+-- Finalize addon list
+for _, addon in pairs(addonsTable) do
+  table.insert(addons, addon)
+end
+
+print("[CodeScan] Analysis complete! Sending results...")
+
+-- Send results to our web service
+local json = util.TableToJSON({
+  serverIp = serverIp,
+  gmodVersion = GAMEMODE and GAMEMODE.Version or tostring(VERSION) or "unknown",
+  issues = issues,
+  exploits = exploits,
+  files = files,
+  addons = addons
+})
+
+http.Post(baseUrl .. "/api/analyze", json, function(body, size, headers, code)
+  if code == 201 then
+    local response = util.JSONToTable(body)
+    if response and response.url then
+      print("[CodeScan] 🎉 Analysis complete! View your report at: " .. baseUrl .. response.url)
+    else
+      print("[CodeScan] ✅ Analysis complete! Report created successfully.")
+    end
+  else
+    print("[CodeScan] ❌ Error submitting results: " .. code)
+    print("[CodeScan] Response: " .. body)
+  end
+end, function(err)
+  print("[CodeScan] ❌ Failed to submit results: " .. err)
+end, { ["Content-Type"] = "application/json" })
       `;
       
       res.set('Content-Type', 'text/plain');
