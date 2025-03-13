@@ -79,6 +79,28 @@ export const addonSchema = z.object({
   issues: z.number(),
 });
 
+// Type for performance profile entries
+export const profileEntrySchema = z.object({
+  func: z.string(),
+  name: z.string().optional(),
+  source: z.string(),
+  total_called: z.number(),
+  total_time: z.number(),
+  average_time: z.number(),
+  line_defined: z.number(),
+  line_last: z.number().optional(),
+  is_c_func: z.boolean().optional(),
+});
+
+// Type for performance data
+export const performanceDataSchema = z.object({
+  most_time: z.array(profileEntrySchema),
+  most_called: z.array(profileEntrySchema),
+  most_avg_time: z.array(profileEntrySchema),
+  scan_duration: z.number(),
+  timestamp: z.string()
+});
+
 // Schema for the scan data coming from a GMod server
 export const scanDataSchema = z.object({
   serverIp: z.string(),
@@ -87,6 +109,7 @@ export const scanDataSchema = z.object({
   exploits: z.array(exploitSchema),
   files: z.array(fileSchema),
   addons: z.array(addonSchema),
+  performance: performanceDataSchema.optional(),
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
