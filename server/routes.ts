@@ -8,24 +8,24 @@ import { fromZodError } from "zod-validation-error";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API Routes - all prefixed with /api
-  
+
   // Get a specific report by ID
   app.get("/api/reports/:reportId", async (req: Request, res: Response) => {
     try {
       const { reportId } = req.params;
       const report = await storage.getReport(reportId);
-      
+
       if (!report) {
         return res.status(404).json({ message: "Report not found" });
       }
-      
+
       return res.json(report);
     } catch (error) {
       console.error("Error fetching report:", error);
       return res.status(500).json({ message: "Failed to fetch report" });
     }
   });
-  
+
   // List recent reports
   app.get("/api/reports", async (req: Request, res: Response) => {
     try {
@@ -37,61 +37,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "Failed to list reports" });
     }
   });
-  
+
   // Create a new report from scan data
   app.post("/api/analyze", async (req: Request, res: Response) => {
     try {
       // Validate the incoming scan data against our schema
       const scanData = scanDataSchema.parse(req.body);
-      
+
       // Create the report
       const report = await storage.createReport(scanData);
-      
+
       return res.status(201).json({
         message: "Report created successfully",
         reportId: report.reportId,
-        url: `/report/${report.reportId}`
+        url: `/report/${report.reportId}`,
       });
     } catch (error) {
       console.error("Error creating report:", error);
-      
+
       if (error instanceof ZodError) {
         const validationError = fromZodError(error);
-        return res.status(400).json({ 
-          message: "Invalid scan data", 
-          details: validationError.message 
+        return res.status(400).json({
+          message: "Invalid scan data",
+          details: validationError.message,
         });
       }
-      
+
       return res.status(500).json({ message: "Failed to create report" });
     }
   });
-  
+
   // Generate the console command for server owners
   app.get("/api/console-command", (req: Request, res: Response) => {
     try {
       const serverIp = req.query.serverIp || "your-server-ip";
-      const baseUrl = process.env.BASE_URL || req.get("host") || "localhost:5000";
+      const baseUrl =
+        process.env.BASE_URL || req.get("host") || "localhost:5000";
       const protocol = req.secure ? "https" : "http";
-      
+
       const commandUrl = `${protocol}://${baseUrl}/api/scanner-code?server=${serverIp}`;
-      
+
       const consoleCommand = `lua_run http.Fetch("${commandUrl}", function(body) RunString(body) end)`;
-      
+
       return res.json({ command: consoleCommand });
     } catch (error) {
       console.error("Error generating command:", error);
-      return res.status(500).json({ message: "Failed to generate console command" });
+      return res
+        .status(500)
+        .json({ message: "Failed to generate console command" });
     }
   });
-  
+
   // Endpoint that returns the Lua code to be executed on the server
   app.get("/api/scanner-code", (req: Request, res: Response) => {
     try {
-      const serverIp = req.query.server as string || "unknown";
-      const baseUrl = process.env.BASE_URL || req.get("host") || "localhost:5000";
+      const serverIp = (req.query.server as string) || "unknown";
+      const baseUrl =
+        process.env.BASE_URL || req.get("host") || "localhost:5000";
       const protocol = req.secure ? "https" : "http";
-      
+
       // This is the Lua code that will be executed on the GMod server to analyze it
       // Based on BadCoderz library but simplified for web integration
       const luaCode = `
@@ -260,7 +264,7 @@ for hookName, hookTable in pairs(hook.GetTable()) do
                 occurrences = 1,
                 filePath = filePath,
                 lineNumber = info.linedefined,
-                code = funcName .. "(255, 255, 255, 255) -- example",
+                code = "local obj = " .. funcName .. "(255, 255, 255, 255)",
                 recommendation = "Cache the " .. funcName .. " object outside of the hook"
               })
               
@@ -280,45 +284,8 @@ for hookName, hookTable in pairs(hook.GetTable()) do
   end
 end
 
--- Scan for potential security exploits
-print("[CodeScan] Scanning for security vulnerabilities...")
-for k, v in pairs(_G) do
-  if type(v) == "function" and (k == "RunString" or k == "CompileString" or k == "RunStringEx") then
-    -- Look for uses of these functions in the source code
-    for _, filePath in ipairs(files) do
-      local path = filePath.path
-      if file.Exists(path, "GAME") then
-        local source = file.Read(path, "GAME") or ""
-        
-        -- Check for RunString with net.Receive patterns
-        if string.find(source, "net%.Receive") and string.find(source, k) then
-          local exploitId = "exploit_" .. #exploits + 1
-          local addonName = filePath.addon
-          
-          table.insert(exploits, {
-            id = exploitId,
-            title = "Potential " .. k .. " exploit in network code",
-            description = "Code found that might execute arbitrary strings received over the network without validation",
-            severity = "critical",
-            filePath = path,
-            lineNumber = 0, -- We don't know the exact line
-            code = "net.Receive(\"SomeMessage\", function(len, ply)\\n  local data = net.ReadString()\\n  " .. k .. "(data)\\nend)", -- Example
-            recommendation = "Never run code from network messages without strict validation"
-          })
-          
-          -- Update issue count
-          addonsTable[addonName].issues = addonsTable[addonName].issues + 1
-          for i, f in ipairs(files) do
-            if f.path == path then
-              files[i].issues = files[i].issues + 1
-              break
-            end
-          end
-        end
-      end
-    end
-  end
-end
+-- Skip security exploits scan
+print("[CodeScan] Analysis of hooks and functions complete!")
 
 -- Finalize addon list
 for _, addon in pairs(addonsTable) do
@@ -353,12 +320,14 @@ end, function(err)
   print("[CodeScan] ❌ Failed to submit results: " .. err)
 end, { ["Content-Type"] = "application/json" })
       `;
-      
-      res.set('Content-Type', 'text/plain');
+
+      res.set("Content-Type", "text/plain");
       return res.send(luaCode);
     } catch (error) {
       console.error("Error generating scanner code:", error);
-      return res.status(500).json({ message: "Failed to generate scanner code" });
+      return res
+        .status(500)
+        .json({ message: "Failed to generate scanner code" });
     }
   });
 

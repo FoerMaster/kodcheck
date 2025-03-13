@@ -150,10 +150,9 @@ export default function BadCodeIssues({ issues }: BadCodeIssuesProps) {
                     >
                       <FaCopy className="h-3 w-3" />
                     </button>
-                    <pre
-                      className="text-blue-300"
-                      dangerouslySetInnerHTML={{ __html: highlightCode(issue.code) }}
-                    ></pre>
+                    <pre className="text-blue-300">
+                      {issue.code}
+                    </pre>
                   </div>
                 </div>
                 
