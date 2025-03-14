@@ -34,7 +34,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
 
   // Use HTTPS middleware
-  app.use(enforceHttps);
+  //app.use(enforceHttps);
 
   // Setup WebSocket server with secure configuration
   const wss = new WebSocketServer({ 
