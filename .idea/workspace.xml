@@ -5,98 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="945459a4-1e41-4aa0-80e9-9dec34b57093" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.env" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/attached_assets/content-1741856391960.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/attached_assets/content-1741856427658.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/attached_assets/content-1741857102856.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/attached_assets/content-1741857114076.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/attached_assets/content-1741857125948.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/attached_assets/content-1741857139349.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/attached_assets/content-1741857149676.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/attached_assets/content-1741859173905.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/attached_assets/content-1741859461582.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/attached_assets/content-1741860323488.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/attached_assets/content-1741860373578.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/attached_assets/content-1741860557548.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/attached_assets/content-1741860559321.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/attached_assets/content-1741860560292.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/attached_assets/content-1741860590424.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/index.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/App.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/Addons.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/BadCodeIssues.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/CodeContext.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ConVarAnalysis.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/PotentialExploits.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ReportOverview.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ScannedFiles.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/Sidebar.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/accordion.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/alert-dialog.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/alert.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/aspect-ratio.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/avatar.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/badge.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/breadcrumb.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/button.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/calendar.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/card.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/carousel.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/chart.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/checkbox.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/collapsible.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/command.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/context-menu.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/dialog.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/drawer.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/dropdown-menu.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/form.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/hover-card.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/input-otp.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/input.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/label.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/menubar.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/navigation-menu.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/pagination.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/popover.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/progress.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/radio-group.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/resizable.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/scroll-area.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/select.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/separator.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/sheet.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/sidebar.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/skeleton.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/slider.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/switch.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/table.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/tabs.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/textarea.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/toast.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/toaster.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/toggle-group.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/toggle.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/components/ui/tooltip.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/hooks/use-mobile.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/hooks/use-toast.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/index.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/lib/queryClient.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/lib/utils.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/main.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/pages/Home.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/pages/Report.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/pages/not-found.tsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/utils/codeHighlight.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/utils/consoleCommand.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/client/src/utils/cookies.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/postcss.config.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/server/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/server/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/server/routes.ts" beforeDir="false" afterPath="$PROJECT_DIR$/server/routes.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tailwind.config.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/theme.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tsconfig.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/vite.config.ts" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -105,22 +15,23 @@
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="UPDATE_TYPE" value="REBASE" />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "FoerMaster"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;FoerMaster&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/FoerMaster/kodcheck.git",
-    "accountId": "1c47a1ec-6511-4c28-a898-773735fbe2ed"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/FoerMaster/kodcheck.git&quot;,
+    &quot;accountId&quot;: &quot;1c47a1ec-6511-4c28-a898-773735fbe2ed&quot;
   }
-}]]></component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 2
-}]]></component>
+}</component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 2
+}</component>
   <component name="ProjectId" id="2uG3CT10kOlwam6I12tcikwQPGw" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -137,7 +48,7 @@
     "nodejs_package_manager_path": "npm",
     "npm.db:push.executor": "Run",
     "npm.dev.executor": "Run",
-    "ts.external.directory.path": "C:\\Users\\foerm\\Pictures\\GmodCodeScanner\\node_modules\\typescript\\lib",
+    "ts.external.directory.path": "C:\\Program Files\\JetBrains\\WebStorm 2024.2.4\\plugins\\javascript-plugin\\jsLanguageServicesImpl\\external",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
@@ -185,6 +96,8 @@
       <option name="presentableId" value="Default" />
       <updated>1741860955675</updated>
       <workItem from="1741860956800" duration="3775000" />
+      <workItem from="1741892390373" duration="6000" />
+      <workItem from="1741970517713" duration="72000" />
     </task>
     <servers />
   </component>
